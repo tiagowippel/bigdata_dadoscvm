@@ -142,6 +142,9 @@ const PorEmpresa = (props) => {
     const [options, setOptions] = useState([]);
     const [value, setValue] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [options1, setOptions1] = useState([]);
+    const [value1, setValue1] = useState(null);
+    const [loading1, setLoading1] = useState(false);
 
     const buscaEmpresas = _.debounce((filter) => {
         setLoading(true);
@@ -178,14 +181,71 @@ const PorEmpresa = (props) => {
             });
     }, 300);
 
+    const buscaEstados = _.debounce((filter) => {
+        setLoading1(true);
+        client
+            .query({
+                query: gql`
+                    {
+                        estado(
+                            where: {
+                                #_or: {
+                                    #nome_fantasia: {
+                                    #    _ilike: "%${filter}%"
+                                    #},
+                                    nome: {
+                                        _ilike: "%${filter}%"
+                                    }
+                                #},
+                            },
+                            limit: 10,
+                        ) {
+                            id
+                            nome
+                            sigla
+                        }
+                    }
+                `,
+            })
+            .then((result) => {
+                setOptions1(result.data.estado);
+            })
+            .finally((e) => {
+                setLoading1(false);
+            });
+    }, 300);
+
     return (
         <div>
             <Card>
                 <Row gutter={[5, 5]}>
                     <Col span={4}>
-                        <Select defaultValue="sc" style={{ width: '100%' }}>
+                        {/* <Select defaultValue="sc" style={{ width: '100%' }}>
                             <Select.Option value="sc">SC</Select.Option>
-                        </Select>
+                        </Select> */}
+                        <Select
+                            //defaultValue="weg"
+                            style={{ width: '100%' }}
+                            showSearch
+                            allowClear
+                            showArrow={false}
+                            value={value1}
+                            loading={loading1}
+                            filterOption={false}
+                            onChange={(value) => {
+                                //console.log(value);
+                                setValue1(value);
+                            }}
+                            onSearch={(filter) => {
+                                buscaEstados(filter);
+                            }}
+                            options={options1.map((item, k) => {
+                                return {
+                                    value: item.id,
+                                    label: `${item.nome}-${item.sigla}`,
+                                };
+                            })}
+                        ></Select>
                     </Col>
                     <Col span={12}>
                         <Select
@@ -431,6 +491,43 @@ const PorSetor = (props) => {
     const [options, setOptions] = useState([]);
     const [value, setValue] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [options1, setOptions1] = useState([]);
+    const [value1, setValue1] = useState(null);
+    const [loading1, setLoading1] = useState(false);
+
+    const buscaEstados = _.debounce((filter) => {
+        setLoading1(true);
+        client
+            .query({
+                query: gql`
+                    {
+                        estado(
+                            where: {
+                                #_or: {
+                                    #nome_fantasia: {
+                                    #    _ilike: "%${filter}%"
+                                    #},
+                                    nome: {
+                                        _ilike: "%${filter}%"
+                                    }
+                                #},
+                            },
+                            limit: 10,
+                        ) {
+                            id
+                            nome
+                            sigla
+                        }
+                    }
+                `,
+            })
+            .then((result) => {
+                setOptions1(result.data.estado);
+            })
+            .finally((e) => {
+                setLoading1(false);
+            });
+    }, 300);
 
     const buscaSetores = _.debounce((filter) => {
         setLoading(true);
@@ -465,12 +562,35 @@ const PorSetor = (props) => {
             <Card>
                 <Row gutter={[5, 5]}>
                     <Col span={4}>
-                        <Select defaultValue="todos" style={{ width: '100%' }}>
+                        {/* <Select defaultValue="todos" style={{ width: '100%' }}>
                             <Select.Option value="todos">
                                 Todos estados
                             </Select.Option>
                             <Select.Option value="sc">SC</Select.Option>
-                        </Select>
+                        </Select> */}
+                        <Select
+                            //defaultValue="weg"
+                            style={{ width: '100%' }}
+                            showSearch
+                            allowClear
+                            showArrow={false}
+                            value={value1}
+                            loading={loading1}
+                            filterOption={false}
+                            onChange={(value) => {
+                                //console.log(value);
+                                setValue1(value);
+                            }}
+                            onSearch={(filter) => {
+                                buscaEstados(filter);
+                            }}
+                            options={options1.map((item, k) => {
+                                return {
+                                    value: item.id,
+                                    label: `${item.nome}-${item.sigla}`,
+                                };
+                            })}
+                        ></Select>
                     </Col>
                     <Col span={12}>
                         <Select
