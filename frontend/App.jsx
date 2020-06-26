@@ -30,6 +30,8 @@ import {
     Col,
     Radio,
     Divider,
+    Button,
+    Modal,
 } from 'antd';
 const { Header, Content, Footer, Sider } = Layout;
 
@@ -138,51 +140,16 @@ class App extends React.Component {
 
 export default App;
 
-const PorEmpresa = (props) => {
+const PorSetor = (props) => {
     const [options, setOptions] = useState([]);
     const [value, setValue] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [options1, setOptions1] = useState([]);
-    const [value1, setValue1] = useState(null);
-    const [loading1, setLoading1] = useState(false);
-
-    const buscaEmpresas = _.debounce((filter) => {
-        setLoading(true);
-        client
-            .query({
-                query: gql`
-                    {
-                        empresa(
-                            where: {
-                                #_or: {
-                                    #nome_fantasia: {
-                                    #    _ilike: "%${filter}%"
-                                    #},
-                                    razao_social: {
-                                        _ilike: "%${filter}%"
-                                    }
-                                #},
-                            },
-                            limit: 10,
-                        ) {
-                            id
-                            cnpj
-                            nome_fantasia
-                            razao_social
-                        }
-                    }
-                `,
-            })
-            .then((result) => {
-                setOptions(result.data.empresa);
-            })
-            .finally((e) => {
-                setLoading(false);
-            });
-    }, 300);
+    const [optionsUF, setOptionsUF] = useState([]);
+    const [valueUF, setValueUF] = useState(null);
+    const [loadingUF, setLoadingUF] = useState(false);
 
     const buscaEstados = _.debounce((filter) => {
-        setLoading1(true);
+        setLoadingUF(true);
         client
             .query({
                 query: gql`
@@ -208,10 +175,38 @@ const PorEmpresa = (props) => {
                 `,
             })
             .then((result) => {
-                setOptions1(result.data.estado);
+                setOptionsUF(result.data.estado);
             })
             .finally((e) => {
-                setLoading1(false);
+                setLoadingUF(false);
+            });
+    }, 300);
+
+    const buscaSetores = _.debounce((filter) => {
+        setLoading(true);
+        client
+            .query({
+                query: gql`
+                    {
+                        setor(
+                            where: {
+                                    nome: {
+                                        _ilike: "%${filter}%"
+                                    }
+                            },
+                            limit: 10,
+                        ) {
+                            id
+                            nome
+                        }
+                    }
+                `,
+            })
+            .then((result) => {
+                setOptions(result.data.setor);
+            })
+            .finally((e) => {
+                setLoading(false);
             });
     }, 300);
 
@@ -220,7 +215,10 @@ const PorEmpresa = (props) => {
             <Card>
                 <Row gutter={[5, 5]}>
                     <Col span={4}>
-                        {/* <Select defaultValue="sc" style={{ width: '100%' }}>
+                        {/* <Select defaultValue="todos" style={{ width: '100%' }}>
+                            <Select.Option value="todos">
+                                Todos estados
+                            </Select.Option>
                             <Select.Option value="sc">SC</Select.Option>
                         </Select> */}
                         <Select
@@ -229,17 +227,17 @@ const PorEmpresa = (props) => {
                             showSearch
                             allowClear
                             showArrow={false}
-                            value={value1}
-                            loading={loading1}
+                            value={valueUF}
+                            loading={loadingUF}
                             filterOption={false}
                             onChange={(value) => {
                                 //console.log(value);
-                                setValue1(value);
+                                setValueUF(value);
                             }}
                             onSearch={(filter) => {
                                 buscaEstados(filter);
                             }}
-                            options={options1.map((item, k) => {
+                            options={optionsUF.map((item, k) => {
                                 return {
                                     value: item.id,
                                     label: `${item.nome}-${item.sigla}`,
@@ -258,19 +256,26 @@ const PorEmpresa = (props) => {
                             loading={loading}
                             filterOption={false}
                             onChange={(value) => {
+                                //console.log(value);
                                 setValue(value);
                             }}
                             onSearch={(filter) => {
-                                buscaEmpresas(filter);
+                                buscaSetores(filter);
                             }}
+                            options={options.map((item, k) => {
+                                return {
+                                    value: item.id,
+                                    label: `${item.nome}`,
+                                };
+                            })}
                         >
-                            {options.map((item, k) => {
+                            {/* {options.map((item, k) => {
                                 return (
                                     <Select.Option key={k} value={item.id}>
-                                        {`${item.razao_social}-${item.nome_fantasia}`}
+                                        {`${item.nome}`}
                                     </Select.Option>
                                 );
-                            })}
+                            })} */}
                             {/* <Select.Option value="weg">WEG S.A.</Select.Option> */}
                         </Select>
                     </Col>
@@ -487,16 +492,57 @@ const PorEmpresa = (props) => {
     );
 };
 
-const PorSetor = (props) => {
+const PorEmpresa = (props) => {
     const [options, setOptions] = useState([]);
     const [value, setValue] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [options1, setOptions1] = useState([]);
-    const [value1, setValue1] = useState(null);
-    const [loading1, setLoading1] = useState(false);
+    const [optionsUF, setOptionsUF] = useState([]);
+    const [valueUF, setValueUF] = useState(null);
+    const [loadingUF, setLoadingUF] = useState(false);
+
+    const [trimestre, setTrimestre] = useState(1);
+
+    const [fatAno2018, setFatAno2018] = useState(0);
+    const [fatAno2019, setFatAno2019] = useState(0);
+    const [fatAno2020, setFatAno2020] = useState(0);
+
+    const buscaEmpresas = _.debounce((filter) => {
+        setLoading(true);
+        client
+            .query({
+                query: gql`
+                    {
+                        empresa(
+                            where: {
+                                #_or: {
+                                    #nome_fantasia: {
+                                    #    _ilike: "%${filter}%"
+                                    #},
+                                    razao_social: {
+                                        _ilike: "%${filter}%"
+                                    }
+                                #},
+                            },
+                            limit: 10,
+                        ) {
+                            id
+                            cnpj
+                            nome_fantasia
+                            razao_social
+                        }
+                    }
+                `,
+            })
+            .then((result) => {
+                setOptions(result.data.empresa);
+            })
+            .finally((e) => {
+                setLoading(false);
+            });
+    }, 300);
 
     const buscaEstados = _.debounce((filter) => {
-        setLoading1(true);
+        setLoadingUF(true);
         client
             .query({
                 query: gql`
@@ -522,38 +568,10 @@ const PorSetor = (props) => {
                 `,
             })
             .then((result) => {
-                setOptions1(result.data.estado);
+                setOptionsUF(result.data.estado);
             })
             .finally((e) => {
-                setLoading1(false);
-            });
-    }, 300);
-
-    const buscaSetores = _.debounce((filter) => {
-        setLoading(true);
-        client
-            .query({
-                query: gql`
-                    {
-                        setor(
-                            where: {
-                                    nome: {
-                                        _ilike: "%${filter}%"
-                                    }
-                            },
-                            limit: 10,
-                        ) {
-                            id
-                            nome
-                        }
-                    }
-                `,
-            })
-            .then((result) => {
-                setOptions(result.data.setor);
-            })
-            .finally((e) => {
-                setLoading(false);
+                setLoadingUF(false);
             });
     }, 300);
 
@@ -562,10 +580,7 @@ const PorSetor = (props) => {
             <Card>
                 <Row gutter={[5, 5]}>
                     <Col span={4}>
-                        {/* <Select defaultValue="todos" style={{ width: '100%' }}>
-                            <Select.Option value="todos">
-                                Todos estados
-                            </Select.Option>
+                        {/* <Select defaultValue="sc" style={{ width: '100%' }}>
                             <Select.Option value="sc">SC</Select.Option>
                         </Select> */}
                         <Select
@@ -574,17 +589,17 @@ const PorSetor = (props) => {
                             showSearch
                             allowClear
                             showArrow={false}
-                            value={value1}
-                            loading={loading1}
+                            value={valueUF}
+                            loading={loadingUF}
                             filterOption={false}
                             onChange={(value) => {
                                 //console.log(value);
-                                setValue1(value);
+                                setValueUF(value);
                             }}
                             onSearch={(filter) => {
                                 buscaEstados(filter);
                             }}
-                            options={options1.map((item, k) => {
+                            options={optionsUF.map((item, k) => {
                                 return {
                                     value: item.id,
                                     label: `${item.nome}-${item.sigla}`,
@@ -592,7 +607,7 @@ const PorSetor = (props) => {
                             })}
                         ></Select>
                     </Col>
-                    <Col span={12}>
+                    <Col span={10}>
                         <Select
                             //defaultValue="weg"
                             style={{ width: '100%' }}
@@ -603,28 +618,26 @@ const PorSetor = (props) => {
                             loading={loading}
                             filterOption={false}
                             onChange={(value) => {
-                                //console.log(value);
                                 setValue(value);
                             }}
                             onSearch={(filter) => {
-                                buscaSetores(filter);
+                                buscaEmpresas(filter);
                             }}
-                            options={options.map((item, k) => {
-                                return {
-                                    value: item.id,
-                                    label: `${item.nome}`,
-                                };
-                            })}
                         >
-                            {/* {options.map((item, k) => {
+                            {options.map((item, k) => {
                                 return (
                                     <Select.Option key={k} value={item.id}>
-                                        {`${item.nome}`}
+                                        {`${item.razao_social}-${item.nome_fantasia}`}
                                     </Select.Option>
                                 );
-                            })} */}
+                            })}
                             {/* <Select.Option value="weg">WEG S.A.</Select.Option> */}
                         </Select>
+                    </Col>
+                    <Col span={4}>
+                        <Button type="primary" onclick={(e) => {}}>
+                            Atualizar
+                        </Button>
                     </Col>
                 </Row>
             </Card>
