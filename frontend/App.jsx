@@ -635,7 +635,46 @@ const PorEmpresa = (props) => {
                         </Select>
                     </Col>
                     <Col span={4}>
-                        <Button type="primary" onclick={(e) => {}}>
+                        <Button
+                            type="primary"
+                            onClick={(e) => {
+                                client
+                                    .query({
+                                        query: gql`
+                                            query MyQuery {
+                                                faturamento_aggregate(
+                                                    distinct_on: [
+                                                        ano
+                                                        trimestre
+                                                    ]
+                                                    where: {
+                                                        cnpj_empresa: {
+                                                            _gt: "1"
+                                                        }
+                                                    }
+                                                ) {
+                                                    aggregate {
+                                                        sum {
+                                                            vl_faturamento
+                                                            vl_lucro_liquido
+                                                        }
+                                                    }
+                                                    nodes {
+                                                        trimestre
+                                                        ano
+                                                        vl_faturamento
+                                                        vl_lucro_liquido
+                                                    }
+                                                }
+                                            }
+                                        `,
+                                    })
+                                    .then((result) => {
+                                        console.log(result);
+                                    })
+                                    .finally((e) => {});
+                            }}
+                        >
                             Atualizar
                         </Button>
                     </Col>
@@ -645,7 +684,13 @@ const PorEmpresa = (props) => {
             <Card title="Faturamentos Trimestrais">
                 <Row gutter={[16, 16]}>
                     <Col span={12}>
-                        <Radio.Group defaultValue="1" size="large">
+                        <Radio.Group
+                            defaultValue="1"
+                            size="large"
+                            onChange={(e) => {
+                                console.log(e);
+                            }}
+                        >
                             <Radio.Button value="1">1º Trimestre</Radio.Button>
                             <Radio.Button value="2">2º Trimestre</Radio.Button>
                             <Radio.Button value="3">3º Trimestre</Radio.Button>
