@@ -40,7 +40,8 @@ import ApolloClient, { gql } from 'apollo-boost';
 import _ from 'lodash';
 
 const client = new ApolloClient({
-    uri: 'http://dashboard-financeiro.herokuapp.com/v1/graphql',
+    //uri: 'http://dashboard-financeiro.herokuapp.com/v1/graphql',
+    uri: 'http://45.162.68.46:8080/v1/graphql',
     request: (operation) => {
         //const token = localStorage.getItem('token')
         operation.setContext({
