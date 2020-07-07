@@ -1,6 +1,6 @@
 'use strict';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 
 import { Bar, Line } from 'react-chartjs-2';
@@ -492,6 +492,8 @@ const PorSetor = (props) => {
     );
 };
 
+let dados = null;
+
 const PorEmpresa = (props) => {
     const [options, setOptions] = useState([]);
     const [value, setValue] = useState(null);
@@ -500,11 +502,23 @@ const PorEmpresa = (props) => {
     const [valueUF, setValueUF] = useState(null);
     const [loadingUF, setLoadingUF] = useState(false);
 
-    const [trimestre, setTrimestre] = useState(1);
+    const [trimestre, setTrimestre] = useState(0);
 
     const [fatAno2018, setFatAno2018] = useState(0);
     const [fatAno2019, setFatAno2019] = useState(0);
     const [fatAno2020, setFatAno2020] = useState(0);
+
+    const [fatAnual2018, setFatAnual2018] = useState([]);
+    const [fatAnual2019, setFatAnual2019] = useState([]);
+    const [fatAnual2020, setFatAnual2020] = useState([]);
+
+    useEffect(() => {
+        if (dados) {
+            setFatAno2018(dados[`2018${trimestre}`]?.vl_faturamento);
+            setFatAno2019(dados[`2019${trimestre}`]?.vl_faturamento);
+            setFatAno2020(dados[`2020${trimestre}`]?.vl_faturamento);
+        }
+    }, [trimestre]);
 
     const buscaEmpresas = _.debounce((filter) => {
         setLoading(true);
@@ -626,7 +640,7 @@ const PorEmpresa = (props) => {
                         >
                             {options.map((item, k) => {
                                 return (
-                                    <Select.Option key={k} value={item.id}>
+                                    <Select.Option key={k} value={item.cnpj}>
                                         {`${item.razao_social}-${item.nome_fantasia}`}
                                     </Select.Option>
                                 );
@@ -647,11 +661,11 @@ const PorEmpresa = (props) => {
                                                         ano
                                                         trimestre
                                                     ]
-                                                    where: {
-                                                        cnpj_empresa: {
-                                                            _gt: "1"
-                                                        }
-                                                    }
+                                                    where: {_and: {cnpj_empresa: {${
+                                                        value
+                                                            ? `_eq:"${value}"`
+                                                            : '_gte: ""'
+                                                    }}, ano: {_gte: 2018}}}
                                                 ) {
                                                     aggregate {
                                                         sum {
@@ -670,7 +684,34 @@ const PorEmpresa = (props) => {
                                         `,
                                     })
                                     .then((result) => {
-                                        console.log(result);
+                                        dados =
+                                            result.data.faturamento_aggregate
+                                                .nodes;
+
+                                        const anual = _.groupBy(dados, 'ano');
+                                        setFatAnual2018(
+                                            anual['2018'].map(
+                                                (item) => item.vl_faturamento
+                                            )
+                                        );
+                                        setFatAnual2019(
+                                            anual['2019'].map(
+                                                (item) => item.vl_faturamento
+                                            )
+                                        );
+                                        setFatAnual2020(
+                                            anual['2020'].map(
+                                                (item) => item.vl_faturamento
+                                            )
+                                        );
+
+                                        dados = dados.reduce((obj, item) => {
+                                            obj[
+                                                `${item.ano}${item.trimestre}`
+                                            ] = item;
+                                            return obj;
+                                        }, {});
+                                        setTrimestre(1);
                                     })
                                     .finally((e) => {});
                             }}
@@ -685,11 +726,13 @@ const PorEmpresa = (props) => {
                 <Row gutter={[16, 16]}>
                     <Col span={12}>
                         <Radio.Group
-                            defaultValue="1"
+                            //defaultValue="1"
                             size="large"
                             onChange={(e) => {
-                                console.log(e);
+                                //console.log(e);
+                                setTrimestre(e.target.value);
                             }}
+                            value={trimestre}
                         >
                             <Radio.Button value="1">1º Trimestre</Radio.Button>
                             <Radio.Button value="2">2º Trimestre</Radio.Button>
@@ -703,7 +746,7 @@ const PorEmpresa = (props) => {
                         <Card>
                             <Statistic
                                 title="2018"
-                                value={1000.0}
+                                value={fatAno2018}
                                 precision={2}
                                 prefix="R$"
                                 decimalSeparator=","
@@ -718,7 +761,7 @@ const PorEmpresa = (props) => {
                         <Card>
                             <Statistic
                                 title="2019"
-                                value={1000.0}
+                                value={fatAno2019}
                                 precision={2}
                                 prefix="R$"
                                 decimalSeparator=","
@@ -733,7 +776,7 @@ const PorEmpresa = (props) => {
                         <Card>
                             <Statistic
                                 title="2020"
-                                value={1000.0}
+                                value={fatAno2020}
                                 precision={2}
                                 prefix="R$"
                                 decimalSeparator=","
@@ -748,6 +791,63 @@ const PorEmpresa = (props) => {
             </Card>
             <Divider />
             <Card title="Evolução Faturamentos">
+                <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                        <Line
+                            options={{
+                                scales: {
+                                    yAxes: [
+                                        {
+                                            ticks: {
+                                                beginAtZero: true,
+                                            },
+                                        },
+                                    ],
+                                },
+                            }}
+                            data={{
+                                labels: [
+                                    '1º Trimestre',
+                                    '2º Trimestre',
+                                    '3º Trimestre',
+                                    '4º Trimestre',
+                                    '1º Trimestre',
+                                    '2º Trimestre',
+                                    '3º Trimestre',
+                                    '4º Trimestre',
+                                    '1º Trimestre',
+                                    '2º Trimestre',
+                                    '3º Trimestre',
+                                    '4º Trimestre',
+                                ],
+                                datasets: [
+                                    {
+                                        label: '2018',
+                                        fill: false,
+                                        data: fatAnual2018,
+                                        borderColor: 'red',
+                                    },
+                                    {
+                                        label: '2019',
+                                        fill: false,
+                                        data: fatAnual2019,
+                                        borderColor: 'blue',
+                                    },
+                                    {
+                                        label: '2020',
+                                        fill: false,
+                                        data: fatAnual2020,
+                                        borderColor: 'green',
+                                    },
+                                ],
+                            }}
+                            //   width={100}
+                            height={80}
+                            //   options={{ maintainAspectRatio: false }}
+                        />
+                    </Col>
+                </Row>
+
                 <Row gutter={[16, 16]}>
                     <Col span={12}>
                         <Line
@@ -773,19 +873,19 @@ const PorEmpresa = (props) => {
                                     {
                                         label: '2018',
                                         fill: false,
-                                        data: [10, 20, 15, 18],
+                                        data: fatAnual2018,
                                         borderColor: 'red',
                                     },
                                     {
                                         label: '2019',
                                         fill: false,
-                                        data: [8, 15, 10, 20],
+                                        data: fatAnual2019,
                                         borderColor: 'blue',
                                     },
                                     {
                                         label: '2020',
                                         fill: false,
-                                        data: [12, 6],
+                                        data: fatAnual2020,
                                         borderColor: 'green',
                                     },
                                 ],
@@ -808,19 +908,19 @@ const PorEmpresa = (props) => {
                                     {
                                         label: '2018',
                                         fill: false,
-                                        data: [10, 20, 15, 18],
+                                        data: fatAnual2018,
                                         backgroundColor: 'red',
                                     },
                                     {
                                         label: '2019',
                                         fill: false,
-                                        data: [8, 15, 10, 20],
+                                        data: fatAnual2019,
                                         backgroundColor: 'blue',
                                     },
                                     {
                                         label: '2020',
                                         fill: false,
-                                        data: [12, 6],
+                                        data: fatAnual2020,
                                         backgroundColor: 'green',
                                     },
                                 ],
