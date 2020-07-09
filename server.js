@@ -32,3 +32,10 @@ const srv = app.listen(3000, () => {
     console.log('Example app listening on port 3000!');
 });
 //srv.setTimeout(10 * 60 * 1000);
+
+// const sampleCorrelation = require('simple-statistics').sampleCorrelation;
+
+// const a = [1, 1, 1, 2, 2, 1, 1];
+// const b = [1, 1, 1, 3, 2, 1, 1];
+
+// console.log(sampleCorrelation(a, b));
