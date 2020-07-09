@@ -21,6 +21,19 @@ const Test = (props) => {
 };
 
 import {
+    observer,
+    //Provider
+} from 'mobx-react';
+
+import {
+    //action,
+    //observable,
+    toJS,
+    extendObservable,
+    observable,
+} from 'mobx';
+
+import {
     Layout,
     Menu,
     Card,
@@ -77,9 +90,9 @@ class App extends React.Component {
                             <Menu.Item key="1">
                                 <Link to="/porEmpresa">Por Empresa</Link>
                             </Menu.Item>
-                            <Menu.Item key="2">
+                            {/* <Menu.Item key="2">
                                 <Link to="/porSetor">Por Setor</Link>
-                            </Menu.Item>
+                            </Menu.Item> */}
                         </Menu>
                     </Sider>
                     <Layout
@@ -123,7 +136,7 @@ class App extends React.Component {
                                 />
                                 <Route
                                     path="/porEmpresa"
-                                    component={PorEmpresa}
+                                    component={PorEmpresa1}
                                 />
                                 <Route path="/porSetor" component={PorSetor} />
                                 <Route
@@ -997,3 +1010,172 @@ const PorEmpresa = (props) => {
         </div>
     );
 };
+
+@observer
+class PorEmpresa1 extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    @observable loadingEmpresa = false;
+    @observable empresa = null;
+    @observable empresas = [];
+
+    buscaEmpresas = _.debounce((filter) => {
+        this.loadingEmpresa = true;
+        client
+            .query({
+                query: gql`
+                        {
+                            empresa(
+                                where: {
+                                    #_or: {
+                                        #nome_fantasia: {
+                                        #    _ilike: "%${filter}%"
+                                        #},
+                                        razao_social: {
+                                            _ilike: "%${filter}%"
+                                        }
+                                    #},
+                                },
+                                limit: 10,
+                            ) {
+                                id
+                                cnpj
+                                nome_fantasia
+                                razao_social
+                            }
+                        }
+                    `,
+            })
+            .then((result) => {
+                this.empresas = result.data.empresa;
+            })
+            .finally((e) => {
+                this.loadingEmpresa = false;
+            });
+    }, 300);
+
+    render() {
+        return (
+            <div>
+                <Card>
+                    <Row gutter={[5, 5]}>
+                        <Col span={10}>
+                            <Select
+                                //defaultValue="weg"
+                                style={{ width: '100%' }}
+                                showSearch
+                                allowClear
+                                showArrow={false}
+                                value={this.empresa}
+                                loading={this.loadingEmpresa}
+                                filterOption={false}
+                                onChange={(value) => {
+                                    this.empresa = value;
+                                }}
+                                onSearch={(filter) => {
+                                    this.buscaEmpresas(filter);
+                                }}
+                            >
+                                {toJS(this.empresas).map((item, k) => {
+                                    return (
+                                        <Select.Option
+                                            key={k}
+                                            value={item.cnpj}
+                                        >
+                                            {`${item.razao_social}-${item.nome_fantasia}`}
+                                        </Select.Option>
+                                    );
+                                })}
+                                {/* <Select.Option value="weg">WEG S.A.</Select.Option> */}
+                            </Select>
+                        </Col>
+                        <Col span={4}>
+                            <Button
+                                type="primary"
+                                onClick={(e) => {
+                                    client
+                                        .query({
+                                            query: gql`
+                                            query MyQuery {
+                                                faturamento_aggregate(
+                                                    distinct_on: [
+                                                        ano
+                                                        trimestre
+                                                    ]
+                                                    where: {_and: {cnpj_empresa: {${
+                                                        value
+                                                            ? `_eq:"${value}"`
+                                                            : '_gte: ""'
+                                                    }}, ano: {_gte: 2018}}}
+                                                ) {
+                                                    aggregate {
+                                                        sum {
+                                                            vl_faturamento
+                                                            vl_lucro_liquido
+                                                        }
+                                                    }
+                                                    nodes {
+                                                        trimestre
+                                                        ano
+                                                        vl_faturamento
+                                                        vl_lucro_liquido
+                                                    }
+                                                }
+                                            }
+                                        `,
+                                        })
+                                        .then((result) => {
+                                            dados =
+                                                result.data
+                                                    .faturamento_aggregate
+                                                    .nodes;
+
+                                            const anual = _.groupBy(
+                                                dados,
+                                                'ano'
+                                            );
+                                            setFatAnual2018(
+                                                anual['2018'].map(
+                                                    (item) =>
+                                                        item.vl_faturamento
+                                                )
+                                            );
+                                            setFatAnual2019(
+                                                anual['2019'].map(
+                                                    (item) =>
+                                                        item.vl_faturamento
+                                                )
+                                            );
+                                            setFatAnual2020(
+                                                anual['2020'].map(
+                                                    (item) =>
+                                                        item.vl_faturamento
+                                                )
+                                            );
+
+                                            dados = dados.reduce(
+                                                (obj, item) => {
+                                                    obj[
+                                                        `${item.ano}${item.trimestre}`
+                                                    ] = item;
+                                                    return obj;
+                                                },
+                                                {}
+                                            );
+                                            setTrimestre(1);
+                                        })
+                                        .finally((e) => {});
+                                }}
+                            >
+                                Atualizar
+                            </Button>
+                        </Col>
+                    </Row>
+                </Card>
+                <Divider />
+            </div>
+        );
+    }
+}
