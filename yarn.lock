@@ -8491,6 +8491,11 @@ simple-git@2.6.0:
   resolved "https://registry.yarnpkg.com/simple-git/-/simple-git-2.6.0.tgz#04b554d1038e6036af2ae4d67a30bc5fd75f4fcd"
   integrity sha512-eplWRfu6RTfoAzGl7I0+g06MvYauXaNpjeuhFiOYZO9hevnH54RkkStOkEevWwqBWfdzWNO9ocffbdtxFzBqXQ==
 
+simple-statistics@^7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/simple-statistics/-/simple-statistics-7.1.0.tgz#22a3ae8476650ff4cc1643fff6b636334629d352"
+  integrity sha512-aA7JgiiptQJFB1xJDySzUJ64XTtl1zkR5U79Qa0AxSYVTxws2UlsZt/chyJm+2lMt3xIPKzAsNzVhZhMUXlY+g==
+
 simple-swizzle@^0.2.2:
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/simple-swizzle/-/simple-swizzle-0.2.2.tgz#a4da6b635ffcccca33f70d17cb92592de95e557a"

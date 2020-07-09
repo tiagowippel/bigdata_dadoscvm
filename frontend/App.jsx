@@ -1021,6 +1021,9 @@ class PorEmpresa1 extends React.Component {
     @observable empresa = null;
     @observable empresas = [];
 
+    @observable trimestre = 1;
+    @observable dados = {};
+
     buscaEmpresas = _.debounce((filter) => {
         this.loadingEmpresa = true;
         client
@@ -1057,6 +1060,14 @@ class PorEmpresa1 extends React.Component {
     }, 300);
 
     render() {
+        const a = toJS(this.dados);
+
+        const b = [].concat(
+            _.values(a[2018]),
+            _.values(a[2019]),
+            _.values(a[2020])
+        );
+
         return (
             <div>
                 <Card>
@@ -1099,72 +1110,56 @@ class PorEmpresa1 extends React.Component {
                                         .query({
                                             query: gql`
                                             query MyQuery {
-                                                faturamento_aggregate(
-                                                    distinct_on: [
-                                                        ano
-                                                        trimestre
-                                                    ]
-                                                    where: {_and: {cnpj_empresa: {${
-                                                        value
-                                                            ? `_eq:"${value}"`
-                                                            : '_gte: ""'
-                                                    }}, ano: {_gte: 2018}}}
-                                                ) {
-                                                    aggregate {
-                                                        sum {
-                                                            vl_faturamento
-                                                            vl_lucro_liquido
+                                                faturamento(
+                                                    where: {
+                                                        _and: {
+                                                            cnpj_empresa: {
+                                                                _eq:"${this.empresa}"
+                                                            },
+                                                            ano: {_gte: 2018}
                                                         }
                                                     }
-                                                    nodes {
-                                                        trimestre
-                                                        ano
-                                                        vl_faturamento
-                                                        vl_lucro_liquido
-                                                    }
+                                                ) {
+                                                    trimestre
+                                                    ano
+                                                    vl_faturamento
+                                                    vl_lucro_liquido
+                                                }
+                                                empresa_acao(where: {cnpj_empresa: {
+                                                    _eq:"${this.empresa}"
+                                                }}) {
+                                                    ticker
                                                 }
                                             }
                                         `,
                                         })
                                         .then((result) => {
-                                            dados =
-                                                result.data
-                                                    .faturamento_aggregate
-                                                    .nodes;
-
-                                            const anual = _.groupBy(
-                                                dados,
-                                                'ano'
-                                            );
-                                            setFatAnual2018(
-                                                anual['2018'].map(
-                                                    (item) =>
-                                                        item.vl_faturamento
-                                                )
-                                            );
-                                            setFatAnual2019(
-                                                anual['2019'].map(
-                                                    (item) =>
-                                                        item.vl_faturamento
-                                                )
-                                            );
-                                            setFatAnual2020(
-                                                anual['2020'].map(
-                                                    (item) =>
-                                                        item.vl_faturamento
-                                                )
+                                            console.log(
+                                                result.data.empresa_acao
                                             );
 
-                                            dados = dados.reduce(
+                                            dados = result.data.faturamento.reduce(
                                                 (obj, item) => {
-                                                    obj[
-                                                        `${item.ano}${item.trimestre}`
+                                                    !obj[item.ano] &&
+                                                        (obj[item.ano] = {});
+                                                    !obj[item.ano][
+                                                        item.trimestre
+                                                    ] &&
+                                                        (obj[item.ano][
+                                                            item.trimestre
+                                                        ] = null);
+
+                                                    obj[item.ano][
+                                                        item.trimestre
                                                     ] = item;
+
                                                     return obj;
                                                 },
                                                 {}
                                             );
-                                            setTrimestre(1);
+
+                                            this.dados = dados;
+                                            this.trimestre = 1;
                                         })
                                         .finally((e) => {});
                                 }}
@@ -1175,6 +1170,258 @@ class PorEmpresa1 extends React.Component {
                     </Row>
                 </Card>
                 <Divider />
+                <Card title="Faturamentos Trimestrais">
+                    <Row gutter={[16, 16]}>
+                        <Col span={12}>
+                            <Radio.Group
+                                //defaultValue="1"
+                                size="large"
+                                onChange={(e) => {
+                                    //console.log(e);
+                                    this.trimestre = e.target.value;
+                                }}
+                                value={this.trimestre}
+                            >
+                                <Radio.Button value="1">
+                                    1º Trimestre
+                                </Radio.Button>
+                                <Radio.Button value="2">
+                                    2º Trimestre
+                                </Radio.Button>
+                                <Radio.Button value="3">
+                                    3º Trimestre
+                                </Radio.Button>
+                                <Radio.Button value="4">
+                                    4º Trimestre
+                                </Radio.Button>
+                            </Radio.Group>
+                        </Col>
+                    </Row>
+                    <Row gutter={[16, 16]}>
+                        <Col span={6}>
+                            <Card>
+                                <Statistic
+                                    title="2018"
+                                    value={
+                                        this.dados[2018]?.[this.trimestre]
+                                            ?.vl_faturamento
+                                    }
+                                    precision={2}
+                                    prefix="R$"
+                                    decimalSeparator=","
+                                    groupSeparator="."
+                                    valueStyle={{
+                                        color: 'green',
+                                    }}
+                                />
+                            </Card>
+                        </Col>
+                        <Col span={6}>
+                            <Card>
+                                <Statistic
+                                    title="2019"
+                                    value={
+                                        this.dados[2019]?.[this.trimestre]
+                                            ?.vl_faturamento
+                                    }
+                                    precision={2}
+                                    prefix="R$"
+                                    decimalSeparator=","
+                                    groupSeparator="."
+                                    valueStyle={{
+                                        color: 'green',
+                                    }}
+                                />
+                            </Card>
+                        </Col>
+                        <Col span={6}>
+                            <Card>
+                                <Statistic
+                                    title="2020"
+                                    value={
+                                        this.dados[2020]?.[this.trimestre]
+                                            ?.vl_faturamento
+                                    }
+                                    precision={2}
+                                    prefix="R$"
+                                    decimalSeparator=","
+                                    groupSeparator="."
+                                    valueStyle={{
+                                        color: 'green',
+                                    }}
+                                />
+                            </Card>
+                        </Col>
+                    </Row>
+                </Card>
+                <Divider />
+                <Card title="Evolução Faturamentos">
+                    <Row gutter={[16, 16]}>
+                        <Col span={24}>
+                            <Line
+                                options={{
+                                    scales: {
+                                        yAxes: [
+                                            {
+                                                ticks: {
+                                                    beginAtZero: true,
+                                                },
+                                            },
+                                        ],
+                                    },
+                                }}
+                                data={{
+                                    labels: [
+                                        '1º Trimestre 2018',
+                                        '2º Trimestre 2018',
+                                        '3º Trimestre 2018',
+                                        '4º Trimestre 2018',
+                                        '1º Trimestre 2019',
+                                        '2º Trimestre 2019',
+                                        '3º Trimestre 2019',
+                                        '4º Trimestre 2019',
+                                        '1º Trimestre 2020',
+                                        '2º Trimestre 2020',
+                                        '3º Trimestre 2020',
+                                        '4º Trimestre 2020',
+                                    ],
+                                    datasets: [
+                                        {
+                                            label: 'Faturamento',
+                                            fill: false,
+                                            data: b.map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'blue',
+                                        },
+                                        {
+                                            label: 'Lucro',
+                                            fill: false,
+                                            data: b.map(
+                                                (item) => item.vl_lucro_liquido
+                                            ),
+                                            borderColor: 'green',
+                                        },
+                                    ],
+                                }}
+                                //   width={100}
+                                height={80}
+                                //   options={{ maintainAspectRatio: false }}
+                            />
+                        </Col>
+                    </Row>
+                </Card>
+                <Divider />
+                <Card title="Evolução Faturamentos Anos">
+                    <Row gutter={[16, 16]}>
+                        <Col span={12}>
+                            <Line
+                                options={{
+                                    scales: {
+                                        yAxes: [
+                                            {
+                                                ticks: {
+                                                    beginAtZero: true,
+                                                },
+                                            },
+                                        ],
+                                    },
+                                }}
+                                data={{
+                                    labels: [
+                                        '1º Trimestre',
+                                        '2º Trimestre',
+                                        '3º Trimestre',
+                                        '4º Trimestre',
+                                    ],
+                                    datasets: [
+                                        {
+                                            label: 'Faturamento 2018',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2018]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'blue',
+                                        },
+                                        {
+                                            label: 'Faturamento 2019',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2019]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'green',
+                                        },
+                                        {
+                                            label: 'Faturamento 2020',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2020]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'red',
+                                        },
+                                    ],
+                                }}
+                                //   width={100}
+                                //height={80}
+                                //   options={{ maintainAspectRatio: false }}
+                            />
+                        </Col>
+                        <Col span={12}>
+                            <Bar
+                                options={{}}
+                                data={{
+                                    labels: [
+                                        '1º Trimestre',
+                                        '2º Trimestre',
+                                        '3º Trimestre',
+                                        '4º Trimestre',
+                                    ],
+                                    datasets: [
+                                        {
+                                            label: 'Faturamento 2018',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2018]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'blue',
+                                        },
+                                        {
+                                            label: 'Faturamento 2019',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2019]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'green',
+                                        },
+                                        {
+                                            label: 'Faturamento 2020',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2020]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'red',
+                                        },
+                                    ],
+                                }}
+                                //   width={100}
+                                //height={80}
+                                //   options={{ maintainAspectRatio: false }}
+                            />
+                        </Col>
+                    </Row>
+                </Card>
             </div>
         );
     }

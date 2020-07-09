@@ -20,6 +20,7 @@
         "lodash": "^4.17.15",
         "moment": "^2.27.0",
         "numeral": "^2.0.6",
+        "simple-statistics": "^7.1.0",
         "utf8": "^3.0.0"
     },
     "devDependencies": {
