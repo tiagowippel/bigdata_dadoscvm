@@ -5,6 +5,8 @@ import ReactDOM from 'react-dom';
 
 import { Bar, Line } from 'react-chartjs-2';
 
+import { sampleCorrelation } from 'simple-statistics';
+
 import {
     BrowserRouter as Router,
     //HashRouter as Router,
@@ -208,6 +210,10 @@ class PorEmpresa1 extends React.Component {
             });
     }, 300);
 
+    dolar = [0, 0];
+    selic = [0, 0];
+    igpm = [0, 0];
+
     componentDidMount() {
         client
             .query({
@@ -225,6 +231,16 @@ class PorEmpresa1 extends React.Component {
             })
             .then((result) => {
                 console.log(result.data.taxas_trimestre);
+                this.dolar = result.data.taxas_trimestre.map(
+                    (item) => item.dolar
+                );
+                this.selic = result.data.taxas_trimestre.map(
+                    (item) => item.selic
+                );
+                this.igpm = result.data.taxas_trimestre.map(
+                    (item) => item.igpm
+                );
+                this.forceUpdate();
             });
     }
 
@@ -236,6 +252,8 @@ class PorEmpresa1 extends React.Component {
             _.values(dados[2019]),
             _.values(dados[2020])
         );
+
+        const taxas = ['dolar', 'selic', 'igpm'];
 
         return (
             <div>
@@ -689,13 +707,16 @@ class PorEmpresa1 extends React.Component {
                     <Row gutter={[16, 16]}>
                         <Col span={12}>
                             <HeatMap
-                                xLabels={['dolar', 'igpm', 'selic']}
-                                yLabels={['dolar', 'igpm', 'selic']}
-                                data={[
-                                    [-1, 1, 1],
-                                    [2, 2, 2],
-                                    [3, 4, 5],
-                                ]}
+                                xLabels={taxas}
+                                yLabels={taxas}
+                                data={taxas.map((x) => {
+                                    return taxas.map((y) => {
+                                        return sampleCorrelation(
+                                            this[x],
+                                            this[y]
+                                        ).toFixed(2);
+                                    });
+                                })}
                                 cellRender={(value) =>
                                     value && <div>{value}</div>
                                 }
