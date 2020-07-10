@@ -213,36 +213,10 @@ class PorEmpresa1 extends React.Component {
     dolar = [0, 0];
     selic = [0, 0];
     igpm = [0, 0];
+    faturamento = [0, 0];
+    lucro = [0, 0];
 
-    componentDidMount() {
-        client
-            .query({
-                query: gql`
-                    {
-                        taxas_trimestre(where: { ano: { _gte: "2018" } }) {
-                            dolar
-                            igpm
-                            selic
-                            trimestre
-                            ano
-                        }
-                    }
-                `,
-            })
-            .then((result) => {
-                console.log(result.data.taxas_trimestre);
-                this.dolar = result.data.taxas_trimestre.map(
-                    (item) => item.dolar
-                );
-                this.selic = result.data.taxas_trimestre.map(
-                    (item) => item.selic
-                );
-                this.igpm = result.data.taxas_trimestre.map(
-                    (item) => item.igpm
-                );
-                this.forceUpdate();
-            });
-    }
+    componentDidMount() {}
 
     render() {
         const dados = toJS(this.dados);
@@ -253,7 +227,7 @@ class PorEmpresa1 extends React.Component {
             _.values(dados[2020])
         );
 
-        const taxas = ['dolar', 'selic', 'igpm'];
+        const taxas = ['dolar', 'selic', 'igpm', 'faturamento', 'lucro'];
 
         return (
             <div>
@@ -271,6 +245,117 @@ class PorEmpresa1 extends React.Component {
                                 filterOption={false}
                                 onChange={(value) => {
                                     this.empresa = value;
+                                    if (value) {
+                                        client
+                                            .query({
+                                                query: gql`
+                                            query MyQuery {
+                                                faturamento(
+                                                    where: {
+                                                        _and: {
+                                                            cnpj_empresa: {
+                                                                _eq:"${value}"
+                                                            },
+                                                            ano: {_gte: 2018}
+                                                        }
+                                                    }
+                                                ) {
+                                                    trimestre
+                                                    ano
+                                                    vl_faturamento
+                                                    vl_lucro_liquido
+                                                }
+                                                empresa_acao(where: {cnpj_empresa: {
+                                                    _eq:"${value}"
+                                                }}) {
+                                                    ticker
+                                                }
+                                                taxas_trimestre(where: { ano: { _gte: "2018" } }) {
+                                                    dolar
+                                                    igpm
+                                                    selic
+                                                    trimestre
+                                                    ano
+                                                }
+                                            }
+                                        `,
+                                            })
+                                            .then((result) => {
+                                                this.tickers = result.data.empresa_acao.map(
+                                                    (item) => item.ticker
+                                                );
+
+                                                const dados = result.data.faturamento.reduce(
+                                                    (obj, item) => {
+                                                        !obj[item.ano] &&
+                                                            (obj[
+                                                                item.ano
+                                                            ] = {});
+                                                        !obj[item.ano][
+                                                            item.trimestre
+                                                        ] &&
+                                                            (obj[item.ano][
+                                                                item.trimestre
+                                                            ] = null);
+
+                                                        obj[item.ano][
+                                                            item.trimestre
+                                                        ] = item;
+
+                                                        return obj;
+                                                    },
+                                                    {}
+                                                );
+
+                                                this.dados = dados;
+                                                this.trimestre = 1;
+
+                                                this.dolar = result.data.taxas_trimestre
+                                                    .filter((item) =>
+                                                        item.ano == 2020
+                                                            ? item.trimestre ==
+                                                              1
+                                                            : true
+                                                    )
+                                                    .map((item) => item.dolar);
+
+                                                this.selic = result.data.taxas_trimestre
+                                                    .filter((item) =>
+                                                        item.ano == 2020
+                                                            ? item.trimestre ==
+                                                              1
+                                                            : true
+                                                    )
+                                                    .map((item) => item.selic);
+
+                                                this.igpm = result.data.taxas_trimestre
+                                                    .filter((item) =>
+                                                        item.ano == 2020
+                                                            ? item.trimestre ==
+                                                              1
+                                                            : true
+                                                    )
+                                                    .map((item) => item.igpm);
+
+                                                this.faturamento = result.data.faturamento.map(
+                                                    (item) =>
+                                                        item.vl_faturamento
+                                                );
+
+                                                this.lucro = result.data.faturamento.map(
+                                                    (item) =>
+                                                        item.vl_lucro_liquido
+                                                );
+
+                                                console.log(
+                                                    this.dolar,
+                                                    this.lucro
+                                                );
+
+                                                this.forceUpdate();
+                                            })
+                                            .finally((e) => {});
+                                    }
                                 }}
                                 onSearch={(filter) => {
                                     this.buscaEmpresas(filter);
@@ -289,71 +374,16 @@ class PorEmpresa1 extends React.Component {
                                 {/* <Select.Option value="weg">WEG S.A.</Select.Option> */}
                             </Select>
                         </Col>
-                        <Col span={4}>
+                        {/* <Col span={4}>
                             <Button
                                 type="primary"
                                 onClick={(e) => {
-                                    client
-                                        .query({
-                                            query: gql`
-                                            query MyQuery {
-                                                faturamento(
-                                                    where: {
-                                                        _and: {
-                                                            cnpj_empresa: {
-                                                                _eq:"${this.empresa}"
-                                                            },
-                                                            ano: {_gte: 2018}
-                                                        }
-                                                    }
-                                                ) {
-                                                    trimestre
-                                                    ano
-                                                    vl_faturamento
-                                                    vl_lucro_liquido
-                                                }
-                                                empresa_acao(where: {cnpj_empresa: {
-                                                    _eq:"${this.empresa}"
-                                                }}) {
-                                                    ticker
-                                                }
-                                            }
-                                        `,
-                                        })
-                                        .then((result) => {
-                                            this.tickers = result.data.empresa_acao.map(
-                                                (item) => item.ticker
-                                            );
 
-                                            const dados = result.data.faturamento.reduce(
-                                                (obj, item) => {
-                                                    !obj[item.ano] &&
-                                                        (obj[item.ano] = {});
-                                                    !obj[item.ano][
-                                                        item.trimestre
-                                                    ] &&
-                                                        (obj[item.ano][
-                                                            item.trimestre
-                                                        ] = null);
-
-                                                    obj[item.ano][
-                                                        item.trimestre
-                                                    ] = item;
-
-                                                    return obj;
-                                                },
-                                                {}
-                                            );
-
-                                            this.dados = dados;
-                                            this.trimestre = 1;
-                                        })
-                                        .finally((e) => {});
                                 }}
                             >
                                 Atualizar
                             </Button>
-                        </Col>
+                        </Col> */}
                     </Row>
                 </Card>
                 <Divider />
@@ -711,10 +741,12 @@ class PorEmpresa1 extends React.Component {
                                 yLabels={taxas}
                                 data={taxas.map((x) => {
                                     return taxas.map((y) => {
-                                        return sampleCorrelation(
+                                        const corr = sampleCorrelation(
                                             this[x],
                                             this[y]
                                         ).toFixed(2);
+                                        //console.log(corr);
+                                        return corr;
                                     });
                                 })}
                                 cellRender={(value) =>
@@ -722,6 +754,21 @@ class PorEmpresa1 extends React.Component {
                                 }
                                 squares
                                 height={80}
+                                cellStyle={(
+                                    background,
+                                    value,
+                                    min,
+                                    max,
+                                    data,
+                                    x,
+                                    y
+                                ) => ({
+                                    background: `rgb(0, 151, 230, ${
+                                        1 - (max - value) / (max - min)
+                                    })`,
+                                    //fontSize: '11.5px',
+                                    color: '#444',
+                                })}
                             />
                         </Col>
                     </Row>
