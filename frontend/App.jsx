@@ -191,7 +191,8 @@ class PorEmpresa1 extends React.Component {
                                         #},
                                         razao_social: {
                                             _ilike: "%${filter}%"
-                                        }
+                                        },
+                                        faturamentos: {vl_faturamento: {_gte: 0}, ano: {_eq: 2020}}
                                     #},
                                 },
                                 limit: 10,
@@ -291,12 +292,12 @@ class PorEmpresa1 extends React.Component {
                                                 //     (item) => item.ticker
                                                 // );
 
-                                                if (
-                                                    result.data.faturamento
-                                                        .length === 0
-                                                ) {
-                                                    return;
-                                                }
+                                                // if (
+                                                //     result.data.faturamento
+                                                //         .length === 0
+                                                // ) {
+                                                //     return;
+                                                // }
 
                                                 const dados = result.data.faturamento.reduce(
                                                     (obj, item) => {
