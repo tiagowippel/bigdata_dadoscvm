@@ -175,6 +175,8 @@ class PorEmpresa1 extends React.Component {
     @observable ticker = null;
     @observable dadosTicker = [];
 
+    @observable datasets = [];
+
     buscaEmpresas = _.debounce((filter) => {
         this.loadingEmpresa = true;
         client
@@ -210,11 +212,15 @@ class PorEmpresa1 extends React.Component {
             });
     }, 300);
 
-    dolar = [0, 0];
-    selic = [0, 0];
-    igpm = [0, 0];
-    faturamento = [0, 0];
-    lucro = [0, 0];
+    matriz = {
+        // dolar = [0, 0],
+        // selic = [0, 0],
+        // igpm = [0, 0],
+        // ['rec.liquida'] = [0, 0],
+        // lucro = [0, 0],
+    };
+
+    taxas = [];
 
     componentDidMount() {}
 
@@ -227,7 +233,7 @@ class PorEmpresa1 extends React.Component {
             _.values(dados[2020])
         );
 
-        const taxas = ['dolar', 'selic', 'igpm', 'faturamento', 'lucro'];
+        //const taxas = ['dolar', 'selic', 'igpm', 'rec.liquida', 'lucro'];
 
         return (
             <div>
@@ -281,12 +287,26 @@ class PorEmpresa1 extends React.Component {
                                         `,
                                             })
                                             .then((result) => {
-                                                this.tickers = result.data.empresa_acao.map(
-                                                    (item) => item.ticker
-                                                );
+                                                // this.tickers = result.data.empresa_acao.map(
+                                                //     (item) => item.ticker
+                                                // );
+
+                                                if (
+                                                    result.data.faturamento
+                                                        .length === 0
+                                                ) {
+                                                    return;
+                                                }
 
                                                 const dados = result.data.faturamento.reduce(
                                                     (obj, item) => {
+                                                        item.vl_faturamento =
+                                                            item.vl_faturamento /
+                                                            1000;
+                                                        item.vl_lucro_liquido =
+                                                            item.vl_lucro_liquido /
+                                                            1000;
+
                                                         !obj[item.ano] &&
                                                             (obj[
                                                                 item.ano
@@ -310,7 +330,15 @@ class PorEmpresa1 extends React.Component {
                                                 this.dados = dados;
                                                 this.trimestre = 1;
 
-                                                this.dolar = result.data.taxas_trimestre
+                                                this.taxas = [
+                                                    'dolar',
+                                                    'selic',
+                                                    'igpm',
+                                                    'rec.liquida',
+                                                    'lucro',
+                                                ];
+
+                                                this.matriz.dolar = result.data.taxas_trimestre
                                                     .filter((item) =>
                                                         item.ano == 2020
                                                             ? item.trimestre ==
@@ -319,7 +347,7 @@ class PorEmpresa1 extends React.Component {
                                                     )
                                                     .map((item) => item.dolar);
 
-                                                this.selic = result.data.taxas_trimestre
+                                                this.matriz.selic = result.data.taxas_trimestre
                                                     .filter((item) =>
                                                         item.ano == 2020
                                                             ? item.trimestre ==
@@ -328,7 +356,7 @@ class PorEmpresa1 extends React.Component {
                                                     )
                                                     .map((item) => item.selic);
 
-                                                this.igpm = result.data.taxas_trimestre
+                                                this.matriz.igpm = result.data.taxas_trimestre
                                                     .filter((item) =>
                                                         item.ano == 2020
                                                             ? item.trimestre ==
@@ -337,24 +365,108 @@ class PorEmpresa1 extends React.Component {
                                                     )
                                                     .map((item) => item.igpm);
 
-                                                this.faturamento = result.data.faturamento.map(
+                                                this.matriz[
+                                                    'rec.liquida'
+                                                ] = result.data.faturamento.map(
                                                     (item) =>
                                                         item.vl_faturamento
                                                 );
 
-                                                this.lucro = result.data.faturamento.map(
+                                                this.matriz.lucro = result.data.faturamento.map(
                                                     (item) =>
                                                         item.vl_lucro_liquido
                                                 );
 
-                                                console.log(
-                                                    this.dolar,
-                                                    this.lucro
-                                                );
+                                                // console.log(
+                                                //     this.dolar,
+                                                //     this.lucro
+                                                // );
+
+                                                return Promise.all(
+                                                    result.data.empresa_acao.map(
+                                                        (item) => {
+                                                            return client
+                                                                .query({
+                                                                    query: gql`
+                                                                        query MyQuery {
+                                                                            cotacao(where: {ticker: {_eq: "${item.ticker}"}, ano: {_gte: "2018"}}) {
+                                                                                trimestre
+                                                                                variacao
+                                                                                vl_preco
+                                                                                tipo_acao
+                                                                                fator_cotacao
+                                                                                data_cotacao
+                                                                                ano
+                                                                            }
+                                                                        }
+                                                                    `,
+                                                                })
+                                                                .then(
+                                                                    (
+                                                                        result
+                                                                    ) => {
+                                                                        return {
+                                                                            ticker:
+                                                                                item.ticker,
+                                                                            data:
+                                                                                result
+                                                                                    .data
+                                                                                    .cotacao,
+                                                                        };
+                                                                    }
+                                                                );
+                                                        }
+                                                    )
+                                                ).then((arr) => {
+                                                    //console.log(arr);
+                                                    const cores = [
+                                                        'blue',
+                                                        'green',
+                                                        'red',
+                                                    ];
+                                                    this.datasets = arr.map(
+                                                        (item, k) => {
+                                                            this.taxas.push(
+                                                                item.ticker
+                                                            );
+                                                            this.matriz[
+                                                                item.ticker
+                                                            ] = item.data
+                                                                .filter(
+                                                                    (item) =>
+                                                                        item.ano ==
+                                                                        2020
+                                                                            ? item.trimestre ==
+                                                                              1
+                                                                            : true
+                                                                )
+                                                                .map(
+                                                                    (item) =>
+                                                                        item.vl_preco /
+                                                                        100
+                                                                );
+
+                                                            return {
+                                                                label:
+                                                                    item.ticker,
+                                                                fill: false,
+                                                                data: item.data.map(
+                                                                    (item) =>
+                                                                        item.vl_preco /
+                                                                        100
+                                                                ),
+                                                                borderColor:
+                                                                    cores[k],
+                                                            };
+                                                        }
+                                                    );
+                                                });
+                                            })
+                                            .finally((e) => {
+                                                console.log(this.matriz);
 
                                                 this.forceUpdate();
-                                            })
-                                            .finally((e) => {});
+                                            });
                                     }
                                 }}
                                 onSearch={(filter) => {
@@ -387,7 +499,7 @@ class PorEmpresa1 extends React.Component {
                     </Row>
                 </Card>
                 <Divider />
-                <Card title="Faturamentos Trimestrais">
+                <Card title="Receita Líquida Trimestral">
                     <Row gutter={[16, 16]}>
                         <Col span={12}>
                             <Radio.Group
@@ -425,6 +537,7 @@ class PorEmpresa1 extends React.Component {
                                     }
                                     precision={2}
                                     prefix="R$"
+                                    suffix="MI"
                                     decimalSeparator=","
                                     groupSeparator="."
                                     valueStyle={{
@@ -443,6 +556,7 @@ class PorEmpresa1 extends React.Component {
                                     }
                                     precision={2}
                                     prefix="R$"
+                                    suffix="MI"
                                     decimalSeparator=","
                                     groupSeparator="."
                                     valueStyle={{
@@ -461,6 +575,7 @@ class PorEmpresa1 extends React.Component {
                                     }
                                     precision={2}
                                     prefix="R$"
+                                    suffix="MI"
                                     decimalSeparator=","
                                     groupSeparator="."
                                     valueStyle={{
@@ -472,7 +587,118 @@ class PorEmpresa1 extends React.Component {
                     </Row>
                 </Card>
                 <Divider />
-                <Card title="Evolução Faturamentos">
+                <Card title="Evolução Receita Líquida Anos">
+                    <Row gutter={[16, 16]}>
+                        <Col span={12}>
+                            <Line
+                                options={{
+                                    scales: {
+                                        yAxes: [
+                                            {
+                                                ticks: {
+                                                    beginAtZero: true,
+                                                },
+                                            },
+                                        ],
+                                    },
+                                }}
+                                data={{
+                                    labels: [
+                                        '1º Trimestre',
+                                        '2º Trimestre',
+                                        '3º Trimestre',
+                                        '4º Trimestre',
+                                    ],
+                                    datasets: [
+                                        {
+                                            label: 'Receita Líquida 2018',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2018]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'blue',
+                                        },
+                                        {
+                                            label: 'Receita Líquida 2019',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2019]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'green',
+                                        },
+                                        {
+                                            label: 'Receita Líquida 2020',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2020]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            borderColor: 'red',
+                                        },
+                                    ],
+                                }}
+                                //   width={100}
+                                //height={80}
+                                //   options={{ maintainAspectRatio: false }}
+                            />
+                        </Col>
+                        <Col span={12}>
+                            <Bar
+                                options={{}}
+                                data={{
+                                    labels: [
+                                        '1º Trimestre',
+                                        '2º Trimestre',
+                                        '3º Trimestre',
+                                        '4º Trimestre',
+                                    ],
+                                    datasets: [
+                                        {
+                                            label: 'Receita Líquida 2018',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2018]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'blue',
+                                        },
+                                        {
+                                            label: 'Receita Líquida 2019',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2019]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'green',
+                                        },
+                                        {
+                                            label: 'Receita Líquida 2020',
+                                            fill: false,
+                                            data: _.values(
+                                                this.dados[2020]
+                                            ).map(
+                                                (item) => item.vl_faturamento
+                                            ),
+                                            backgroundColor: 'red',
+                                        },
+                                    ],
+                                }}
+                                //   width={100}
+                                //height={80}
+                                //   options={{ maintainAspectRatio: false }}
+                            />
+                        </Col>
+                    </Row>
+                </Card>
+                <Divider />
+                <Card title="Evolução Receita Líquida">
                     <Row gutter={[16, 16]}>
                         <Col span={24}>
                             <Line
@@ -504,7 +730,7 @@ class PorEmpresa1 extends React.Component {
                                     ],
                                     datasets: [
                                         {
-                                            label: 'Faturamento',
+                                            label: 'Receita Líquida',
                                             fill: false,
                                             data: b.map(
                                                 (item) => item.vl_faturamento
@@ -529,119 +755,8 @@ class PorEmpresa1 extends React.Component {
                     </Row>
                 </Card>
                 <Divider />
-                <Card title="Evolução Faturamentos Anos">
-                    <Row gutter={[16, 16]}>
-                        <Col span={12}>
-                            <Line
-                                options={{
-                                    scales: {
-                                        yAxes: [
-                                            {
-                                                ticks: {
-                                                    beginAtZero: true,
-                                                },
-                                            },
-                                        ],
-                                    },
-                                }}
-                                data={{
-                                    labels: [
-                                        '1º Trimestre',
-                                        '2º Trimestre',
-                                        '3º Trimestre',
-                                        '4º Trimestre',
-                                    ],
-                                    datasets: [
-                                        {
-                                            label: 'Faturamento 2018',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2018]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            borderColor: 'blue',
-                                        },
-                                        {
-                                            label: 'Faturamento 2019',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2019]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            borderColor: 'green',
-                                        },
-                                        {
-                                            label: 'Faturamento 2020',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2020]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            borderColor: 'red',
-                                        },
-                                    ],
-                                }}
-                                //   width={100}
-                                //height={80}
-                                //   options={{ maintainAspectRatio: false }}
-                            />
-                        </Col>
-                        <Col span={12}>
-                            <Bar
-                                options={{}}
-                                data={{
-                                    labels: [
-                                        '1º Trimestre',
-                                        '2º Trimestre',
-                                        '3º Trimestre',
-                                        '4º Trimestre',
-                                    ],
-                                    datasets: [
-                                        {
-                                            label: 'Faturamento 2018',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2018]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            backgroundColor: 'blue',
-                                        },
-                                        {
-                                            label: 'Faturamento 2019',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2019]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            backgroundColor: 'green',
-                                        },
-                                        {
-                                            label: 'Faturamento 2020',
-                                            fill: false,
-                                            data: _.values(
-                                                this.dados[2020]
-                                            ).map(
-                                                (item) => item.vl_faturamento
-                                            ),
-                                            backgroundColor: 'red',
-                                        },
-                                    ],
-                                }}
-                                //   width={100}
-                                //height={80}
-                                //   options={{ maintainAspectRatio: false }}
-                            />
-                        </Col>
-                    </Row>
-                </Card>
-                <Divider />
                 <Card title="Ações">
-                    <Row gutter={[16, 16]}>
+                    {/* <Row gutter={[16, 16]}>
                         <Col span={12}>
                             <Radio.Group
                                 defaultValue="1"
@@ -680,7 +795,7 @@ class PorEmpresa1 extends React.Component {
                                 })}
                             </Radio.Group>
                         </Col>
-                    </Row>
+                    </Row> */}
                     <Row gutter={[16, 16]}>
                         <Col span={24}>
                             <Card>
@@ -713,16 +828,17 @@ class PorEmpresa1 extends React.Component {
                                             '3º Trimestre 2020',
                                             '4º Trimestre 2020',
                                         ],
-                                        datasets: [
-                                            {
-                                                label: 'Variação',
-                                                fill: false,
-                                                data: this.dadosTicker.map(
-                                                    (item) => item.variacao
-                                                ),
-                                                borderColor: 'blue',
-                                            },
-                                        ],
+                                        datasets: toJS(this.datasets),
+                                        // datasets: [
+                                        //     {
+                                        //         label: 'Variação',
+                                        //         fill: false,
+                                        //         data: this.dadosTicker.map(
+                                        //             (item) => item.variacao
+                                        //         ),
+                                        //         borderColor: 'blue',
+                                        //     },
+                                        // ],
                                     }}
                                     //   width={100}
                                     height={80}
@@ -737,13 +853,15 @@ class PorEmpresa1 extends React.Component {
                     <Row gutter={[16, 16]}>
                         <Col span={12}>
                             <HeatMap
-                                xLabels={taxas}
-                                yLabels={taxas}
-                                data={taxas.map((x) => {
-                                    return taxas.map((y) => {
+                                xLabels={this.taxas}
+                                yLabels={this.taxas}
+                                xLabelWidth={60}
+                                yLabelWidth={60}
+                                data={this.taxas.map((x) => {
+                                    return this.taxas.map((y) => {
                                         const corr = sampleCorrelation(
-                                            this[x],
-                                            this[y]
+                                            this.matriz[x],
+                                            this.matriz[y]
                                         ).toFixed(2);
                                         //console.log(corr);
                                         return corr;
