@@ -646,6 +646,7 @@ class PorEmpresa1 extends React.Component {
                                 //   width={100}
                                 //height={80}
                                 //   options={{ maintainAspectRatio: false }}
+                                //height={60}
                             />
                         </Col>
                         <Col span={12}>
@@ -694,6 +695,7 @@ class PorEmpresa1 extends React.Component {
                                 //   width={100}
                                 //height={80}
                                 //   options={{ maintainAspectRatio: false }}
+                                //height={60}
                             />
                         </Col>
                     </Row>
@@ -749,7 +751,7 @@ class PorEmpresa1 extends React.Component {
                                     ],
                                 }}
                                 //   width={100}
-                                height={80}
+                                height={60}
                                 //   options={{ maintainAspectRatio: false }}
                             />
                         </Col>
@@ -842,7 +844,7 @@ class PorEmpresa1 extends React.Component {
                                         // ],
                                     }}
                                     //   width={100}
-                                    height={80}
+                                    height={60}
                                     //   options={{ maintainAspectRatio: false }}
                                 />
                             </Card>
