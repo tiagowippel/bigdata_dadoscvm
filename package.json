@@ -17,7 +17,7 @@
         "express": "^4.17.1",
         "graphql": "^15.1.0",
         "graphql-tools": "^6.0.10",
-        "lodash": "^4.17.15",
+        "lodash": "^4.17.21",
         "moment": "^2.27.0",
         "numeral": "^2.0.6",
         "simple-statistics": "^7.1.0",
